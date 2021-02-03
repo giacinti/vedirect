@@ -1,0 +1,78 @@
+substitutions:
+  device_name: vedirect
+  mqtt_prefix: ""
+  GW_ip: 192.168.x.x
+  device_ip: 192.168.x.y
+  mqtt_broker: 192.168.x.z
+
+esphome:
+  name: ${device_name}
+  platform: ESP8266
+  board: nodemcuv2
+  includes:
+    - vedirect/vedirect.h
+    - vedirect/vedirect.cpp
+    - vedirect/VeDirectFrameHandler.cpp
+
+
+wifi:
+  ssid: !secret my_ssid
+  password: !secret my_pwd
+  manual_ip:
+    static_ip: ${device_ip}
+    gateway: ${GW_ip}
+    subnet: 255.255.255.0
+    dns1: ${GW_ip}
+  use_address: ${device_ip}
+
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Fallback Hotspot"
+    password: "very secure password"
+
+captive_portal:
+
+# Enable logging
+logger:
+  hardware_uart: UART0_SWAP
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+uart:
+  id: uart_bus
+  tx_pin: 1
+  rx_pin: 3
+  baud_rate: 19200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+sensor:
+  - platform: template
+    id: sensor_V
+    name: "V"
+    unit_of_measurement: "mV"
+    lambda: "return {};"
+  - platform: template
+    id: sensor_VPV
+    name: "VPV"
+    unit_of_measurement: "mV"
+    lambda: "return {};"
+
+text_sensor:
+  - platform: template
+    id: sensor_LOAD
+    name: "LOAD"
+    lambda: "return {};"
+
+custom_component:
+  - lambda: |-
+      auto vedirect = new VEDirectComponent(id(uart_bus));
+      vedirect->addSensor("V",id(sensor_V));
+      vedirect->addSensor("VPV",id(sensor_VPV));
+      vedirect->addSensor("LOAD",id(sensor_LOAD));
+      return {vedirect};
