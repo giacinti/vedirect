@@ -56,15 +56,17 @@ void VEDirectComponent::addSensor(const char* label, Sensor* ss) {
 }
 
 void VEDirectComponent::ReadVEData() {
-  while (available()) {
-    vedfh.rxData(read());
+  while (vedfh.veEnd<=0) {
+    while (available()) {
+      vedfh.rxData(read());
+    }
   }
   yield();
 }
 
 void VEDirectComponent::update() {
   ReadVEData();
-  int skip[max_sensors]={-1};
+  int skip[max_sensors]={};
   for (int i=0; i<vedfh.veEnd; i++) {
     for (int j=0; j<nb_sensors; j++) {
       if (skip[j]==0 && strcmp(ve_sensors[j]->label(),vedfh.veName[i])==0) {

@@ -1,7 +1,8 @@
 substitutions:
   device_name: vedirect
-  mqtt_prefix: ""
-  GW_ip: 192.168.x.x
+  mqtt_prefix: "vedirect/"
+  ve_serial: "HQXXXXXXXXX/"
+  gw_ip: 192.168.x.x
   device_ip: 192.168.x.y
   mqtt_broker: 192.168.x.z
 
@@ -12,6 +13,7 @@ esphome:
   includes:
     - vedirect/vedirect.h
     - vedirect/vedirect.cpp
+    - vedirect/VeDirectFrameHandler.h
     - vedirect/VeDirectFrameHandler.cpp
 
 
@@ -20,27 +22,38 @@ wifi:
   password: !secret my_pwd
   manual_ip:
     static_ip: ${device_ip}
-    gateway: ${GW_ip}
+    gateway: ${gw_ip}
     subnet: 255.255.255.0
-    dns1: ${GW_ip}
+    dns1: ${gw_ip}
   use_address: ${device_ip}
 
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Fallback Hotspot"
-    password: "very secure password"
+    password: "xxx"
 
 captive_portal:
 
 # Enable logging
 logger:
   hardware_uart: UART0_SWAP
+  level: VERBOSE
 
 # Enable Home Assistant API
-api:
+# api:
 
 ota:
+
+mqtt:
+  broker: ${mqtt_broker}
+  discovery: False
+  log_topic:
+    topic: none
+    level: NONE
+  birth_message:
+  will_message:
+  shutdown_message:
 
 uart:
   id: uart_bus
@@ -55,24 +68,135 @@ sensor:
   - platform: template
     id: sensor_V
     name: "V"
-    unit_of_measurement: "mV"
-    lambda: "return {};"
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    state_topic: ${mqtt_prefix}${ve_serial}V
+    retain: False
+    availability:
+    filters:
+      - multiply: 0.001
   - platform: template
     id: sensor_VPV
     name: "VPV"
-    unit_of_measurement: "mV"
-    lambda: "return {};"
-
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+    state_topic: ${mqtt_prefix}${ve_serial}VPV
+    retain: False
+    availability:
+    filters:
+      - multiply: 0.001
+  - platform: template
+    id: sensor_PPV
+    name: "PPV"
+    unit_of_measurement: "W"
+    state_topic: ${mqtt_prefix}${ve_serial}PPV
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_I
+    name: "I"
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    state_topic: ${mqtt_prefix}${ve_serial}I
+    retain: False
+    availability:
+    filters:
+      - multiply: 0.001    
+  - platform: template
+    id: sensor_IL
+    name: "IL"
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    state_topic: ${mqtt_prefix}${ve_serial}IL
+    retain: False
+    availability:
+    filters:
+      - multiply: 0.001    
+  - platform: template
+    id: sensor_H19
+    name: "H19"
+    unit_of_measurement: "Wh"
+    state_topic: ${mqtt_prefix}${ve_serial}H19
+    retain: False
+    availability:
+    filters:
+      - multiply: 10
+  - platform: template
+    id: sensor_H20
+    name: "H20"
+    unit_of_measurement: "Wh"
+    state_topic: ${mqtt_prefix}${ve_serial}H20
+    retain: False
+    availability:
+    filters:
+      - multiply: 10
+  - platform: template
+    id: sensor_H22
+    name: "H22"
+    unit_of_measurement: "Wh"
+    state_topic: ${mqtt_prefix}${ve_serial}H22
+    retain: False
+    availability:
+    filters:
+      - multiply: 10
+  - platform: template
+    id: sensor_H21
+    name: "H21"
+    unit_of_measurement: "W"
+    state_topic: ${mqtt_prefix}${ve_serial}H21
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_H23
+    name: "H23"
+    unit_of_measurement: "W"
+    state_topic: ${mqtt_prefix}${ve_serial}H23
+    retain: False
+    availability:
+      
 text_sensor:
   - platform: template
     id: sensor_LOAD
     name: "LOAD"
-    lambda: "return {};"
+    state_topic: ${mqtt_prefix}${ve_serial}LOAD
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_ERR
+    name: "ERR"
+    state_topic: ${mqtt_prefix}${ve_serial}ERR
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_CS
+    name: "CS"
+    state_topic: ${mqtt_prefix}${ve_serial}CS
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_MPPT
+    name: "MPPT"
+    state_topic: ${mqtt_prefix}${ve_serial}MPPT
+    retain: False
+    availability:    
+    
 
 custom_component:
   - lambda: |-
       auto vedirect = new VEDirectComponent(id(uart_bus));
       vedirect->addSensor("V",id(sensor_V));
       vedirect->addSensor("VPV",id(sensor_VPV));
+      vedirect->addSensor("PPV",id(sensor_PPV));
+      vedirect->addSensor("I",id(sensor_I));
+      vedirect->addSensor("IL",id(sensor_IL));
       vedirect->addSensor("LOAD",id(sensor_LOAD));
+      vedirect->addSensor("H19",id(sensor_H19));
+      vedirect->addSensor("H20",id(sensor_H20));
+      vedirect->addSensor("H21",id(sensor_H21));
+      vedirect->addSensor("H22",id(sensor_H22));
+      vedirect->addSensor("H23",id(sensor_H23));
+      vedirect->addSensor("ERR",id(sensor_ERR));
+      vedirect->addSensor("CS",id(sensor_CS));
+      vedirect->addSensor("MPPT",id(sensor_MPPT));
+      vedirect->set_update_interval(60000);
       return {vedirect};
