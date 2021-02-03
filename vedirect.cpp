@@ -20,24 +20,6 @@
 static const char *TAG = "vedirect";
 
 
-// VEDirectComponent::VEDirectComponent(UARTComponent* parent, int nbs, ...)
-//   : UARTDevice(parent) {
-//   int i=0;
-//   nb_sensors=0;
-//   va_list slist;
-//   va_start(slist,nbs);
-//   while (i<nbs) {
-//     VESensor* s=new VESensor;
-//     ve_sensors[nb_sensors++]=s;
-//     s->_label=strdup(va_arg(slist,const char*));
-//     s->_sensor=va_arg(slist,Sensor*);
-//     s->_is_text=(typeid(s->_sensor)==typeid(TextSensor));
-//     i+=2;
-//     ESP_LOGD(TAG,"recorded %s sensor for label %s", s->is_text()?"text":"numeric", s->label());
-//   }
-//   va_end(slist);
-// }
-
 void VEDirectComponent::_addSensor(const char* label, Sensor* ss, bool is_text) {
   VESensor* s=new VESensor;
   s->_label=strdup(label);

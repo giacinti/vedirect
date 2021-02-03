@@ -26,11 +26,11 @@ using namespace text_sensor;
 
 class VEDirectComponent : public PollingComponent, public UARTDevice {
 public:
-  //VEDirectComponent(UARTComponent* parent, int, ...);
  VEDirectComponent(UARTComponent* parent) : UARTDevice(parent) {}
 
   void addSensor(const char*, TextSensor*);
   void addSensor(const char*, Sensor*);
+
   void setup() override {}
   void loop() override {}
   void update() override;
@@ -57,11 +57,6 @@ protected:
 
   VeDirectFrameHandler vedfh;
   void ReadVEData();
-
-  unsigned int ve_PID=0;
-  char ve_SERIAL[11]; // format LLYYMMSSSSS
-  char ve_FW[6]; // firmware version, same for 16 and 24 bits
-
 };
 
 #endif
