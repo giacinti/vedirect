@@ -31,8 +31,8 @@ public:
   void addSensor(const char*, TextSensor*);
   void addSensor(const char*, Sensor*);
 
+  void loop() override;
   void setup() override {}
-  void loop() override {}
   void update() override;
 
 protected:
