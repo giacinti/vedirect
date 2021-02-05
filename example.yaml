@@ -1,10 +1,10 @@
 substitutions:
   device_name: vedirect
   mqtt_prefix: "vedirect/"
-  ve_serial: "HQXXXXXXXXX/"
-  gw_ip: 192.168.x.x
-  device_ip: 192.168.x.y
-  mqtt_broker: 192.168.x.z
+  ve_serial: "XXXXXXXXXXX/"
+  gateway_ip: 192.168.x.y
+  device_ip: 192.168.x.z
+  mqtt_broker: 192.168.x.t
 
 esphome:
   name: ${device_name}
@@ -22,30 +22,32 @@ wifi:
   password: !secret my_pwd
   manual_ip:
     static_ip: ${device_ip}
-    gateway: ${gw_ip}
+    gateway: ${gateway_ip}
     subnet: 255.255.255.0
-    dns1: ${gw_ip}
+    dns1: ${gateway_ip}
   use_address: ${device_ip}
 
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Fallback Hotspot"
-    password: "xxx"
+    ssid: "XXX Fallback Hotspot"
+    password: "XXX"
 
 captive_portal:
 
 # Enable logging
 logger:
   hardware_uart: UART0_SWAP
-  level: VERBOSE
+  level: DEBUG
 
-# Enable Home Assistant API
-# api:
+# Enable Home Assistant API - just for debug
+api:
+  reboot_timeout: 0s
 
 ota:
 
 mqtt:
+  id: mqtt_client
   broker: ${mqtt_broker}
   discovery: False
   log_topic:
@@ -156,6 +158,24 @@ sensor:
       
 text_sensor:
   - platform: template
+    id: sensor_PID
+    name: "PID"
+    state_topic: ${mqtt_prefix}${ve_serial}PID
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_FW
+    name: "FW"
+    state_topic: ${mqtt_prefix}${ve_serial}FW
+    retain: False
+    availability:
+  - platform: template
+    id: sensor_SER
+    name: "SER"
+    state_topic: ${mqtt_prefix}${ve_serial}SER
+    retain: False
+    availability:    
+  - platform: template
     id: sensor_LOAD
     name: "LOAD"
     state_topic: ${mqtt_prefix}${ve_serial}LOAD
@@ -179,11 +199,19 @@ text_sensor:
     state_topic: ${mqtt_prefix}${ve_serial}MPPT
     retain: False
     availability:    
-    
+  - platform: template
+    id: sensor_HEX
+    name: "HEX"
+    state_topic: ${mqtt_prefix}${ve_serial}HEX
+    retain: False
+    availability:    
 
 custom_component:
   - lambda: |-
       auto vedirect = new VEDirectComponent(id(uart_bus));
+      vedirect->addSensor("PID",id(sensor_PID));
+      vedirect->addSensor("FW",id(sensor_FW));
+      vedirect->addSensor("SER#",id(sensor_SER));
       vedirect->addSensor("V",id(sensor_V));
       vedirect->addSensor("VPV",id(sensor_VPV));
       vedirect->addSensor("PPV",id(sensor_PPV));
@@ -198,5 +226,18 @@ custom_component:
       vedirect->addSensor("ERR",id(sensor_ERR));
       vedirect->addSensor("CS",id(sensor_CS));
       vedirect->addSensor("MPPT",id(sensor_MPPT));
+      vedirect->addSensor("HEX",id(sensor_HEX));
+      vedirect->muteAsyncMessage(true);
       vedirect->set_update_interval(60000);
+      
+      id(mqtt_client).subscribe("${mqtt_prefix}${ve_serial}HexCommand", 
+      [=](const std::string& topic, const std::string &payload) {
+        vedirect->sendHexCommand(payload.c_str());
+      });
+      
+      id(mqtt_client).subscribe("${mqtt_prefix}${ve_serial}AsyncMute", 
+      [=](const std::string& topic, const std::string &payload) {
+        vedirect->muteAsyncMessage((payload=="true")?true:false);
+      });
+      
       return {vedirect};

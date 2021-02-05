@@ -18,9 +18,32 @@
 #include "vedirect.h"
 
 static const char *TAG = "vedirect";
+static const char *HEX_LABEL = "HEX";
 
+static void static_log_e(const char* module, const char* error) {
+  esp_log_printf_(ESPHOME_LOG_LEVEL_DEBUG, module, 0, "%s", error);
+}
+
+static void static_hex_cb(const char* buffer, int size, void* obj) {
+  ((VEDirectComponent*)obj)->hexCallback(buffer, size);
+}
+
+VEDirectComponent::VEDirectComponent(UARTComponent* parent)
+  : UARTDevice(parent),
+    nb_sensors(0),
+    hexSensorIndex(-1),
+    hexAsyncMute(false)
+{
+  vedfh.setErrorHandler(&static_log_e);
+}
 
 void VEDirectComponent::_addSensor(const char* label, Sensor* ss, bool is_text) {
+  if (strcmp(label, HEX_LABEL)==0) {
+    hexSensorIndex=nb_sensors;
+    vedfh.addHexCallback(&static_hex_cb, (void*)this);
+    ESP_LOGD(TAG,"recorded callback for HEX sensor, index=%d",hexSensorIndex);
+  }
+  
   VESensor* s=new VESensor;
   s->_label=strdup(label);
   s->_sensor=ss;
@@ -60,12 +83,12 @@ void VEDirectComponent::update() {
 	if (s->is_text()) {
 	  TextSensor* ts=(TextSensor*)ss;
 	  ts->publish_state(vedfh.veValue[i]);
-	  ESP_LOGD(TAG,"published state %s for text sensor %s", vedfh.veValue[i], s->label());
+	  //ESP_LOGD(TAG,"published state %s for text sensor %s", vedfh.veValue[i], s->label());
 	}
 	else {
 	  float val=atof(vedfh.veValue[i]);
 	  ss->publish_state(val);
-	  ESP_LOGD(TAG,"published state %f for numeric sensor %s", val, s->label());
+	  //ESP_LOGD(TAG,"published state %f for numeric sensor %s", val, s->label());
 	}
 	break;
       }
@@ -73,4 +96,17 @@ void VEDirectComponent::update() {
   }
 }
 
+void VEDirectComponent::hexCallback(const char* buffer, int size) {
+  if (hexSensorIndex!=-1 && (buffer[1]!='A' || hexAsyncMute==false)) {
+    char tmpdata[size+1];
+    memcpy(tmpdata,buffer,size);
+    tmpdata[size]=0; // end of string
+    ((TextSensor*)(ve_sensors[hexSensorIndex]->sensor()))->publish_state(tmpdata);
+    ESP_LOGD(TAG,"hex callback received, published hex frame %s", tmpdata);
+  }
+}
 
+void VEDirectComponent::sendHexCommand(const char* command) {
+  ESP_LOGD(TAG,"send hex command %s", command);
+  write_str(command);
+}

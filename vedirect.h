@@ -26,14 +26,17 @@ using namespace text_sensor;
 
 class VEDirectComponent : public PollingComponent, public UARTDevice {
 public:
- VEDirectComponent(UARTComponent* parent) : UARTDevice(parent) {}
+  VEDirectComponent(UARTComponent* parent);
 
   void addSensor(const char*, TextSensor*);
   void addSensor(const char*, Sensor*);
+  void muteAsyncMessage(bool m) { hexAsyncMute=m; }
+  void sendHexCommand(const char*);
 
   void loop() override;
   void setup() override {}
   void update() override;
+  void hexCallback(const char*, int);
 
 protected:
 
@@ -57,6 +60,9 @@ protected:
 
   VeDirectFrameHandler vedfh;
   void ReadVEData();
+
+  int hexSensorIndex;
+  boolean hexAsyncMute;
 };
 
 #endif
